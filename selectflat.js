@@ -95,7 +95,32 @@ function forcedIndexesFromOptions(options, multiple) {
   }, []);
 }
 
-function createScopedStyles(id, showOutput) {
+function toCssLength(value, fallback) {
+  if (value === undefined || value === null || value === "") return fallback;
+  return typeof value === "number" ? `${value}px` : String(value);
+}
+
+function normalizeDirection(value) {
+  return ["row", "row-reverse", "column", "column-reverse"].includes(value)
+    ? value
+    : "row";
+}
+
+function normalizeWrap(value) {
+  if (typeof value === "boolean") return value ? "wrap" : "nowrap";
+  return ["wrap", "nowrap", "wrap-reverse"].includes(value) ? value : "wrap";
+}
+
+function normalizeLayout(layout = {}) {
+  return {
+    size: toCssLength(layout.size, "1rem"),
+    gap: toCssLength(layout.gap, "1px"),
+    direction: normalizeDirection(layout.direction),
+    wrap: normalizeWrap(layout.wrap)
+  };
+}
+
+function createScopedStyles(id, showOutput, layout) {
   return `
 #${id} {
   --selectflat-text: #18181b;
@@ -107,6 +132,10 @@ function createScopedStyles(id, showOutput) {
   --selectflat-disabled: #d6d3d1;
   --selectflat-border: #18181b;
   --selectflat-forced-border: #1459c7;
+  --selectflat-option-size: ${layout.size};
+  --selectflat-option-gap: ${layout.gap};
+  --selectflat-option-direction: ${layout.direction};
+  --selectflat-option-wrap: ${layout.wrap};
   display: inline-flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -143,13 +172,14 @@ function createScopedStyles(id, showOutput) {
 
 #${id} .${CLASS_NAME}__options {
   display: flex;
-  flex-wrap: wrap;
-  gap: 1px;
+  flex-direction: var(--selectflat-option-direction);
+  flex-wrap: var(--selectflat-option-wrap);
+  gap: var(--selectflat-option-gap);
 }
 
 #${id} .${CLASS_NAME}__option {
-  width: 1rem;
-  height: 1rem;
+  width: var(--selectflat-option-size);
+  height: var(--selectflat-option-size);
   margin: 0;
   padding: 0;
   border: 0.5px solid var(--selectflat-border);
@@ -215,11 +245,13 @@ export function selectFlat(config = {}) {
     submit,
     multiple = false,
     output = false,
+    layout = {},
     options: rawOptions = []
   } = toConfig(config);
 
   const options = rawOptions.map(normalizeOption);
   const forcedIndexes = forcedIndexesFromOptions(options, multiple);
+  const normalizedLayout = normalizeLayout(layout);
   const id = nextId();
   const form = document.createElement("form");
   const styles = document.createElement("style");
@@ -231,7 +263,7 @@ export function selectFlat(config = {}) {
 
   form.id = id;
   form.className = CLASS_NAME;
-  styles.textContent = createScopedStyles(id, output);
+  styles.textContent = createScopedStyles(id, output, normalizedLayout);
   optionStrip.className = `${CLASS_NAME}__options`;
   optionStrip.setAttribute("role", multiple ? "group" : "radiogroup");
   metaNode.className = `${CLASS_NAME}__meta`;
@@ -441,6 +473,12 @@ export function selectFlat(config = {}) {
     configurable: true,
     enumerable: true,
     value: options.map((option) => ({ ...option }))
+  });
+
+  Object.defineProperty(form, "layout", {
+    configurable: true,
+    enumerable: true,
+    value: { ...normalizedLayout }
   });
 
   form.setValue = (nextValue, options = { dispatch: true }) => {

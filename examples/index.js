@@ -123,6 +123,52 @@ bindValue(
   (value) => `value = [${value.map((entry) => `"${entry}"`).join(", ")}]`
 );
 
+const layoutRow = mount(
+  "#example-layout-row",
+  selectFlat({
+    description: "wide strip",
+    output: true,
+    value: "D",
+    layout: {
+      size: "1.4rem",
+      gap: "0.25rem",
+      direction: "row",
+      wrap: "nowrap"
+    },
+    options: ["A", "B", "C", "D", "E", "F"]
+  })
+);
+
+bindValue(
+  layoutRow,
+  "#value-layout-row",
+  (value) =>
+    `row layout = ${value}; size=${layoutRow.layout.size}; gap=${layoutRow.layout.gap}; wrap=${layoutRow.layout.wrap}`
+);
+
+const layoutColumn = mount(
+  "#example-layout-column",
+  selectFlat({
+    description: "vertical stack",
+    output: true,
+    value: 3,
+    layout: {
+      size: 22,
+      gap: 6,
+      direction: "column",
+      wrap: false
+    },
+    options: [1, 2, 3, 4, 5]
+  })
+);
+
+bindValue(
+  layoutColumn,
+  "#value-layout-column",
+  (value) =>
+    `column layout = ${value}; direction=${layoutColumn.layout.direction}; wrap=${layoutColumn.layout.wrap}`
+);
+
 const programmatic = mount(
   "#example-programmatic",
   selectFlat({

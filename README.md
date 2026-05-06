@@ -91,6 +91,25 @@ console.log(control.value); // ["warm", "bright"]
 
 When `multiple: true`, hovering an option previews that option together with the values that are already selected.
 
+## Custom layout
+
+You can customize the square size and strip layout with the `layout` option:
+
+```js
+import { selectFlat } from "selectflat";
+
+const control = selectFlat({
+  value: "D",
+  layout: {
+    size: "1.4rem",
+    gap: "0.25rem",
+    direction: "row",
+    wrap: "nowrap"
+  },
+  options: ["A", "B", "C", "D", "E", "F"]
+});
+```
+
 ## API
 
 `selectFlat(config)` or `selectFlat(optionsArray)`
@@ -103,7 +122,15 @@ When `multiple: true`, hovering an option previews that option together with the
 - `description`: optional text shown next to the output
 - `output`: when `true`, show the current label next to the description
 - `multiple`: when `true`, allow toggling several values and return an array
+- `layout`: optional layout object controlling option size and arrangement
 - `submit`: optional submit button label, or `true` for a default `Apply` button
+
+`layout` supports:
+
+- `size`: square width and height, as a CSS length or number of pixels
+- `gap`: spacing between cells, as a CSS length or number of pixels
+- `direction`: `row`, `row-reverse`, `column`, or `column-reverse`
+- `wrap`: `true` / `false`, or `wrap`, `nowrap`, `wrap-reverse`
 
 Option objects support:
 
@@ -119,6 +146,7 @@ Option objects support:
 - `form.value`: current value, or an array when `multiple: true`
 - `form.initialValue`: the initial committed value
 - `form.options`: normalized option snapshot
+- `form.layout`: normalized layout snapshot
 - `form.output`: the `<output>` node used when `output: true`
 - `form.setValue(value, options?)`: programmatically commit a value
 - `form.resetValue(options?)`: restore the initial committed value
