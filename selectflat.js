@@ -75,6 +75,10 @@ function valuesForIndexes(options, indexes, multiple) {
   return multiple ? values : values[0];
 }
 
+function cloneValue(value) {
+  return Array.isArray(value) ? [...value] : value;
+}
+
 function createScopedStyles(id, showOutput) {
   return `
 #${id} {
@@ -261,6 +265,30 @@ export function selectFlat(config = {}) {
     form.dispatchEvent(new Event(type, { bubbles: true }));
   }
 
+  function dispatchValueEvents() {
+    dispatchFormEvent("input");
+    dispatchFormEvent("change");
+  }
+
+  function applyCommittedIndexes(nextIndexes, { dispatch = false } = {}) {
+    committedIndexes = [...nextIndexes];
+    previewIndexes = null;
+    hoveredIndex = null;
+    renderButtons();
+
+    if (dispatch) dispatchValueEvents();
+  }
+
+  function applyCommittedValue(nextValue, { dispatch = false } = {}) {
+    applyCommittedIndexes(indexesFromValue(options, nextValue, multiple), {
+      dispatch
+    });
+  }
+
+  function resetCommittedValue({ dispatch = false } = {}) {
+    applyCommittedIndexes(initialIndexes, { dispatch });
+  }
+
   function commit(index) {
     if (options[index].disabled) return;
 
@@ -270,14 +298,12 @@ export function selectFlat(config = {}) {
       if (selected.has(index)) selected.delete(index);
       else selected.add(index);
 
-      committedIndexes = [...selected].sort((a, b) => a - b);
+      applyCommittedIndexes([...selected].sort((a, b) => a - b), {
+        dispatch: true
+      });
     } else {
-      committedIndexes = [index];
+      applyCommittedIndexes([index], { dispatch: true });
     }
-
-    renderButtons();
-    dispatchFormEvent("input");
-    dispatchFormEvent("change");
   }
 
   options.forEach((option, index) => {
@@ -346,12 +372,7 @@ export function selectFlat(config = {}) {
 
   form.addEventListener("reset", () => {
     queueMicrotask(() => {
-      committedIndexes = [...initialIndexes];
-      hoveredIndex = null;
-      previewIndexes = null;
-      renderButtons();
-      dispatchFormEvent("input");
-      dispatchFormEvent("change");
+      resetCommittedValue({ dispatch: true });
     });
   });
 
@@ -362,10 +383,15 @@ export function selectFlat(config = {}) {
       return valuesForIndexes(options, activeIndexes(), multiple);
     },
     set(nextValue) {
-      committedIndexes = indexesFromValue(options, nextValue, multiple);
-      previewIndexes = null;
-      hoveredIndex = null;
-      renderButtons();
+      applyCommittedValue(nextValue, { dispatch: true });
+    }
+  });
+
+  Object.defineProperty(form, "initialValue", {
+    configurable: true,
+    enumerable: true,
+    get() {
+      return cloneValue(valuesForIndexes(options, initialIndexes, multiple));
     }
   });
 
@@ -374,6 +400,16 @@ export function selectFlat(config = {}) {
     enumerable: true,
     value: options.map((option) => ({ ...option }))
   });
+
+  form.setValue = (nextValue, options = { dispatch: true }) => {
+    applyCommittedValue(nextValue, options);
+    return form;
+  };
+
+  form.resetValue = (options = { dispatch: true }) => {
+    resetCommittedValue(options);
+    return form;
+  };
 
   form.output = outputNode;
   form.append(optionStrip);

@@ -100,3 +100,60 @@ bindValue(
   "#value-multiple",
   (value) => `value = [${value.map((entry) => `"${entry}"`).join(", ")}]`
 );
+
+const programmatic = mount(
+  "#example-programmatic",
+  selectFlat({
+    options: ["A", "B", "C", "D"],
+    value: "C",
+    output: true,
+    description: "controlled value"
+  })
+);
+
+const programmaticChoice = document.querySelector("#programmatic-choice");
+const programmaticApply = document.querySelector("#programmatic-apply");
+const programmaticReset = document.querySelector("#programmatic-reset");
+
+programmatic.options.forEach(({ value, label, disabled }) => {
+  const option = document.createElement("option");
+  option.value = String(programmaticChoice.options.length);
+  option.textContent = label;
+  option.disabled = disabled;
+  option.selected = value === programmatic.initialValue;
+  programmaticChoice.append(option);
+});
+
+function findProgrammaticIndex(value) {
+  return programmatic.options.findIndex(
+    (option) => Object.is(option.value, value) || option.value === value
+  );
+}
+
+function syncProgrammaticChoice() {
+  const selectedIndex = findProgrammaticIndex(programmatic.value);
+  if (selectedIndex >= 0) {
+    programmaticChoice.value = String(selectedIndex);
+  }
+}
+
+programmaticApply.addEventListener("click", () => {
+  const selectedOption = programmatic.options[programmaticChoice.selectedIndex];
+  if (selectedOption) {
+    programmatic.setValue(selectedOption.value);
+  }
+});
+
+programmaticReset.addEventListener("click", () => {
+  programmatic.resetValue();
+});
+
+programmatic.addEventListener("change", syncProgrammaticChoice);
+
+bindValue(
+  programmatic,
+  "#value-programmatic",
+  (value) => `value = ${value} (initial = ${programmatic.initialValue})`
+);
+
+syncProgrammaticChoice();

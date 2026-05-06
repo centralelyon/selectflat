@@ -1,73 +1,100 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>selectflat examples</title>
-    <style>
-      body {
-        margin: 2rem;
-        font: 16px/1.5 sans-serif;
-      }
 
-      main {
-        max-width: 48rem;
-        margin: 0 auto;
-      }
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>selectFlat examples</title>
+  <style>
+    body {
+      margin: 2rem;
+      font: 16px/1.5 sans-serif;
+    }
 
-      section {
-        margin-bottom: 2rem;
-      }
+    main {
+      max-width: 48rem;
+      margin: 0 auto;
+    }
 
-      h1,
-      h2,
-      p {
-        margin-top: 0;
-      }
+    section {
+      margin-bottom: 2rem;
+    }
 
-      .example {
-        margin: 0.75rem 0;
-      }
+    h1,
+    h2,
+    p {
+      margin-top: 0;
+    }
 
-      .value {
-        margin-top: 0.75rem;
-        font-family: monospace;
-      }
-    </style>
-  </head>
-  <body>
-    <main>
-      <section>
-        <h1>selectflat</h1>
-        <p>
-          Minimal examples for the browser ESM module. Hover previews a value,
-          click commits it, and the control exposes the current value on
-          <code>form.value</code>.
-        </p>
-      </section>
+    .example {
+      margin: 0.75rem 0;
+    }
 
-      <section>
-        <h2>Basic selection</h2>
-        <p>Single-value usage with the same letter example as the notebook.</p>
-        <div class="example" id="example-basic"></div>
-        <div class="value" id="value-basic"></div>
-      </section>
+    .value {
+      margin-top: 0.75rem;
+      font-family: monospace;
+    }
 
-      <section>
-        <h2>Parameter space</h2>
-        <p>Three selectors can be previewed live before you click.</p>
-        <div class="example" id="example-math"></div>
-        <div class="value" id="value-math"></div>
-      </section>
+    .controls {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      align-items: center;
+      margin: 0.75rem 0;
+    }
+  </style>
+</head>
 
-      <section>
-        <h2>Multiple values</h2>
-        <p>Multi-select returns an array.</p>
-        <div class="example" id="example-multiple"></div>
-        <div class="value" id="value-multiple"></div>
-      </section>
-    </main>
+<body>
+  <main>
+    <section>
+      <h1>selectFlat</h1>
+      <p>
+        Minimal examples for the browser ESM module. Hover previews a value,
+        click commits it, and the control exposes the current value on
+        <code>form.value</code>.
+      </p>
+    </section>
 
-    <script type="module" src="./index.js"></script>
-  </body>
+    <section>
+      <h2>Basic selection</h2>
+      <p>Single-value usage with the same letter example as the notebook.</p>
+      <div class="example" id="example-basic"></div>
+      <div class="value" id="value-basic"></div>
+    </section>
+
+    <section>
+      <h2>Parameter space</h2>
+      <p>Three selectors can be previewed live before you click.</p>
+      <div class="example" id="example-math"></div>
+      <div class="value" id="value-math"></div>
+    </section>
+
+    <section>
+      <h2>Multiple values</h2>
+      <p>Multi-select returns an array.</p>
+      <div class="example" id="example-multiple"></div>
+      <div class="value" id="value-multiple"></div>
+    </section>
+
+    <section>
+      <h2>Programmatic selection</h2>
+      <p>
+        Use a native dropdown to set the value, or reset the control to its
+        initial state.
+      </p>
+      <div class="example" id="example-programmatic"></div>
+      <div class="controls">
+        <label for="programmatic-choice">Select value:</label>
+        <select id="programmatic-choice"></select>
+        <button type="button" id="programmatic-apply">Apply dropdown value</button>
+        <button type="button" id="programmatic-reset">Reset to initial value</button>
+      </div>
+      <div class="value" id="value-programmatic"></div>
+    </section>
+  </main>
+
+  <script type="module" src="./index.js"></script>
+</body>
+
 </html>
