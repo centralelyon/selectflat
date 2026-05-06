@@ -1,0 +1,43 @@
+{
+  "name": "selectflat",
+  "version": "0.1.0",
+  "description": "A reimplementation of Fil's ObservableHQ selectFlat input.",
+  "type": "module",
+  "main": "./selectflat.js",
+  "module": "./selectflat.js",
+  "browser": "./selectflat.js",
+  "exports": {
+    ".": {
+      "import": "./selectflat.js",
+      "default": "./selectflat.js"
+    }
+  },
+  "files": [
+    "selectflat.js",
+    "README.md",
+    "LICENSE",
+    "examples"
+  ],
+  "sideEffects": false,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/centralelyon/selectflat.git"
+  },
+  "homepage": "https://github.com/centralelyon/selectflat#readme",
+  "bugs": {
+    "url": "https://github.com/centralelyon/selectflat/issues"
+  },
+  "scripts": {
+    "test": "node --input-type=module -e \"import('./selectflat.js').then((m) => { if (typeof m.selectFlat !== 'function') throw new Error('Missing selectFlat export'); console.log('selectFlat export OK'); })\""
+  },
+  "keywords": [
+    "select",
+    "input",
+    "observable",
+    "esm",
+    "browser",
+    "ui",
+    "form"
+  ],
+  "license": "MIT"
+}
