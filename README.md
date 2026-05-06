@@ -110,6 +110,20 @@ const control = selectFlat({
 });
 ```
 
+## Touch interaction
+
+On touch devices:
+
+- tap once to preview a value
+- tap the same cell again to commit it
+- drag across cells to preview continuously and commit on release
+
+In multiple mode, drag gestures act like painting:
+
+- start on an unselected cell to add cells across the drag path
+- start on a selected cell to remove cells across the drag path
+- forced and disabled cells are skipped
+
 ## API
 
 `selectFlat(config)` or `selectFlat(optionsArray)`
@@ -162,6 +176,7 @@ Both `setValue()` and `resetValue()` dispatch `input` and `change` by default. P
 
 - This module is browser-only. It creates DOM nodes and expects `document` to exist.
 - The component injects scoped styles into the returned form, so no extra stylesheet is required.
+- The control uses `touch-action: none` on the option strip so drag gestures work reliably on mobile.
 - This rewrite uses buttons instead of a styled native `<select>`, but keeps the same flat strip interaction from the original notebook.
 
 ## Examples

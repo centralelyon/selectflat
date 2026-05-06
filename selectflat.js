@@ -175,6 +175,9 @@ function createScopedStyles(id, showOutput, layout) {
   flex-direction: var(--selectflat-option-direction);
   flex-wrap: var(--selectflat-option-wrap);
   gap: var(--selectflat-option-gap);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 #${id} .${CLASS_NAME}__option {
@@ -189,6 +192,7 @@ function createScopedStyles(id, showOutput, layout) {
   overflow: hidden;
   cursor: pointer;
   font: inherit;
+  -webkit-tap-highlight-color: transparent;
   transition: transform 120ms ease, background-color 120ms ease;
 }
 
@@ -308,9 +312,63 @@ export function selectFlat(config = {}) {
   let committedIndexes = [...initialIndexes];
   let previewIndexes = null;
   let hoveredIndex = null;
+  let previewPersistent = false;
+  let touchTapIndex = null;
+  let touchState = null;
+  let suppressClickUntil = 0;
 
   function activeIndexes() {
     return previewIndexes ?? committedIndexes;
+  }
+
+  function sameIndexes(a, b) {
+    if (a === b) return true;
+    if (!a || !b) return false;
+    if (a.length !== b.length) return false;
+
+    return a.every((value, index) => value === b[index]);
+  }
+
+  function setPreview(nextIndexes, nextHoveredIndex, { persistent = false } = {}) {
+    previewIndexes = nextIndexes;
+    hoveredIndex = nextHoveredIndex;
+    previewPersistent = persistent && nextIndexes !== null;
+
+    if (previewPersistent) {
+      touchTapIndex = nextHoveredIndex;
+    }
+
+    renderButtons();
+  }
+
+  function clearPreview({ dispatch = false, force = true } = {}) {
+    if (!force && previewPersistent) return false;
+    if (previewIndexes === null && hoveredIndex === null && !previewPersistent) {
+      return false;
+    }
+
+    previewIndexes = null;
+    hoveredIndex = null;
+    previewPersistent = false;
+    touchTapIndex = null;
+    renderButtons();
+
+    if (dispatch) dispatchFormEvent("input");
+    return true;
+  }
+
+  function isTouchPointerEvent(event) {
+    return event.pointerType === "touch" || event.pointerType === "pen";
+  }
+
+  function buttonFromTarget(target) {
+    const button = target?.closest(`.${CLASS_NAME}__option`);
+    return button && optionStrip.contains(button) ? button : null;
+  }
+
+  function buttonFromPoint(x, y) {
+    const element = document.elementFromPoint(x, y);
+    return buttonFromTarget(element);
   }
 
   function syncOutput() {
@@ -346,9 +404,7 @@ export function selectFlat(config = {}) {
 
   function applyCommittedIndexes(nextIndexes, { dispatch = false } = {}) {
     committedIndexes = normalizeCommittedIndexes(nextIndexes);
-    previewIndexes = null;
-    hoveredIndex = null;
-    renderButtons();
+    clearPreview();
 
     if (dispatch) dispatchValueEvents();
   }
@@ -361,6 +417,113 @@ export function selectFlat(config = {}) {
 
   function resetCommittedValue({ dispatch = false } = {}) {
     applyCommittedIndexes(initialIndexes, { dispatch });
+  }
+
+  function multipleIndexesAfterTouchPath(pathIndexes, mode) {
+    const selected = new Set(committedIndexes);
+
+    pathIndexes.forEach((index) => {
+      if (options[index].disabled || isForcedIndex(index)) return;
+      if (mode === "remove") selected.delete(index);
+      else selected.add(index);
+    });
+
+    return normalizeCommittedIndexes([...selected]);
+  }
+
+  function previewIndexesForTouchState(state) {
+    if (!state || state.currentIndex === null) return null;
+
+    if (multiple) {
+      return multipleIndexesAfterTouchPath(state.pathIndexes, state.mode);
+    }
+
+    return previewIndexesFor(state.currentIndex);
+  }
+
+  function startTouchInteraction(index, event) {
+    touchState = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      currentIndex: index,
+      moved: false,
+      pathIndexes: new Set([index]),
+      mode:
+        multiple && committedIndexes.includes(index) ? "remove" : "add"
+    };
+
+    setPreview(previewIndexesForTouchState(touchState), index);
+    dispatchFormEvent("input");
+  }
+
+  function updateTouchInteraction(index, event) {
+    if (!touchState) return;
+
+    const movedX = Math.abs(event.clientX - touchState.startX);
+    const movedY = Math.abs(event.clientY - touchState.startY);
+    if (movedX > 6 || movedY > 6) {
+      touchState.moved = true;
+    }
+
+    if (index === null || index === touchState.currentIndex) return;
+    if (options[index].disabled || isForcedIndex(index)) return;
+
+    touchState.currentIndex = index;
+    touchState.pathIndexes.add(index);
+    if (touchState.pathIndexes.size > 1) {
+      touchState.moved = true;
+    }
+
+    setPreview(previewIndexesForTouchState(touchState), index);
+    dispatchFormEvent("input");
+  }
+
+  function commitTouchInteraction(state) {
+    if (!state || state.currentIndex === null) return;
+
+    if (multiple) {
+      applyCommittedIndexes(
+        multipleIndexesAfterTouchPath(state.pathIndexes, state.mode),
+        { dispatch: true }
+      );
+    } else {
+      applyCommittedIndexes([state.currentIndex], { dispatch: true });
+    }
+  }
+
+  function finishTouchInteraction(event, { cancel = false } = {}) {
+    if (!touchState || event.pointerId !== touchState.pointerId) return;
+
+    const state = touchState;
+    touchState = null;
+
+    if (optionStrip.hasPointerCapture?.(event.pointerId)) {
+      optionStrip.releasePointerCapture(event.pointerId);
+    }
+
+    if (cancel) {
+      clearPreview({ dispatch: true });
+      return;
+    }
+
+    if (state.moved) {
+      commitTouchInteraction(state);
+      return;
+    }
+
+    if (touchTapIndex === state.currentIndex) {
+      commitTouchInteraction(state);
+      return;
+    }
+
+    const nextPreview = previewIndexesForTouchState(state);
+    if (!sameIndexes(nextPreview, committedIndexes)) {
+      setPreview(nextPreview, state.currentIndex, { persistent: true });
+      return;
+    }
+
+    clearPreview({ dispatch: true });
   }
 
   function commit(index) {
@@ -396,42 +559,78 @@ export function selectFlat(config = {}) {
   });
 
   optionStrip.addEventListener("pointerover", (event) => {
+    if (isTouchPointerEvent(event) || touchState) return;
+
     const button = event.target.closest(`.${CLASS_NAME}__option`);
     if (!button || !optionStrip.contains(button)) return;
 
-    hoveredIndex = Number(button.dataset.index);
-    previewIndexes = previewIndexesFor(hoveredIndex);
-    renderButtons();
+    const index = Number(button.dataset.index);
+    setPreview(previewIndexesFor(index), index);
     dispatchFormEvent("input");
   });
 
   optionStrip.addEventListener("focusin", (event) => {
+    if (touchState) return;
+
     const button = event.target.closest(`.${CLASS_NAME}__option`);
     if (!button || !optionStrip.contains(button)) return;
 
-    hoveredIndex = Number(button.dataset.index);
-    previewIndexes = previewIndexesFor(hoveredIndex);
-    renderButtons();
+    const index = Number(button.dataset.index);
+    setPreview(previewIndexesFor(index), index);
     dispatchFormEvent("input");
   });
 
   optionStrip.addEventListener("pointerleave", () => {
-    hoveredIndex = null;
-    previewIndexes = null;
-    renderButtons();
-    dispatchFormEvent("input");
+    if (touchState) return;
+    clearPreview({ dispatch: true, force: false });
   });
 
   optionStrip.addEventListener("focusout", (event) => {
+    if (touchState) return;
     if (optionStrip.contains(event.relatedTarget)) return;
+    clearPreview({ dispatch: true, force: false });
+  });
 
-    hoveredIndex = null;
-    previewIndexes = null;
-    renderButtons();
-    dispatchFormEvent("input");
+  optionStrip.addEventListener("pointerdown", (event) => {
+    if (!isTouchPointerEvent(event)) return;
+
+    const button = buttonFromTarget(event.target);
+    if (!button) return;
+
+    const index = Number(button.dataset.index);
+    if (options[index].disabled || isForcedIndex(index)) return;
+
+    suppressClickUntil = Date.now() + 500;
+    event.preventDefault();
+    optionStrip.setPointerCapture?.(event.pointerId);
+    startTouchInteraction(index, event);
+  });
+
+  optionStrip.addEventListener("pointermove", (event) => {
+    if (!touchState || event.pointerId !== touchState.pointerId) return;
+
+    event.preventDefault();
+    const button = buttonFromPoint(event.clientX, event.clientY);
+    const index = button ? Number(button.dataset.index) : null;
+    updateTouchInteraction(index, event);
+  });
+
+  optionStrip.addEventListener("pointerup", (event) => {
+    if (!touchState || event.pointerId !== touchState.pointerId) return;
+
+    event.preventDefault();
+    finishTouchInteraction(event);
+  });
+
+  optionStrip.addEventListener("pointercancel", (event) => {
+    if (!touchState || event.pointerId !== touchState.pointerId) return;
+
+    finishTouchInteraction(event, { cancel: true });
   });
 
   optionStrip.addEventListener("click", (event) => {
+    if (Date.now() < suppressClickUntil) return;
+
     const button = event.target.closest(`.${CLASS_NAME}__option`);
     if (!button || !optionStrip.contains(button)) return;
 
