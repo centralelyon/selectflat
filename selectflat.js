@@ -120,6 +120,12 @@ function normalizeLayout(layout = {}) {
   };
 }
 
+function normalizeDispatchOptions(options) {
+  return {
+    dispatch: options?.dispatch ?? true
+  };
+}
+
 function createScopedStyles(id, showOutput, layout) {
   return `
 #${id} {
@@ -404,7 +410,9 @@ export function selectFlat(config = {}) {
 
   function applyCommittedIndexes(nextIndexes, { dispatch = false } = {}) {
     committedIndexes = normalizeCommittedIndexes(nextIndexes);
-    clearPreview();
+    if (!clearPreview()) {
+      renderButtons();
+    }
 
     if (dispatch) dispatchValueEvents();
   }
@@ -552,8 +560,11 @@ export function selectFlat(config = {}) {
     button.dataset.index = String(index);
     button.setAttribute("role", multiple ? "checkbox" : "radio");
     button.setAttribute("aria-label", option.label);
-    button.setAttribute("aria-disabled", option.disabled ? "true" : "false");
-    button.tabIndex = option.disabled ? -1 : 0;
+    button.setAttribute(
+      "aria-disabled",
+      option.disabled || option.forced ? "true" : "false"
+    );
+    button.tabIndex = option.disabled || option.forced ? -1 : 0;
     optionStrip.append(button);
     buttons.push(button);
   });
@@ -680,13 +691,13 @@ export function selectFlat(config = {}) {
     value: { ...normalizedLayout }
   });
 
-  form.setValue = (nextValue, options = { dispatch: true }) => {
-    applyCommittedValue(nextValue, options);
+  form.setValue = (nextValue, options) => {
+    applyCommittedValue(nextValue, normalizeDispatchOptions(options));
     return form;
   };
 
-  form.resetValue = (options = { dispatch: true }) => {
-    resetCommittedValue(options);
+  form.resetValue = (options) => {
+    resetCommittedValue(normalizeDispatchOptions(options));
     return form;
   };
 

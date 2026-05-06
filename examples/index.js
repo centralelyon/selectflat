@@ -216,6 +216,7 @@ programmaticReset.addEventListener("click", () => {
   programmatic.resetValue();
 });
 
+programmatic.addEventListener("input", syncProgrammaticChoice);
 programmatic.addEventListener("change", syncProgrammaticChoice);
 
 bindValue(
