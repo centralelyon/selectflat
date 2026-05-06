@@ -101,6 +101,28 @@ bindValue(
   (value) => `value = [${value.map((entry) => `"${entry}"`).join(", ")}]`
 );
 
+const multipleForced = mount(
+  "#example-multiple-forced",
+  selectFlat({
+    description: "required tags",
+    output: true,
+    multiple: true,
+    value: ["warm"],
+    options: [
+      { label: "core", value: "core", forced: true },
+      { label: "warm", value: "warm" },
+      { label: "cool", value: "cool" },
+      { label: "bright", value: "bright" }
+    ]
+  })
+);
+
+bindValue(
+  multipleForced,
+  "#value-multiple-forced",
+  (value) => `value = [${value.map((entry) => `"${entry}"`).join(", ")}]`
+);
+
 const programmatic = mount(
   "#example-programmatic",
   selectFlat({

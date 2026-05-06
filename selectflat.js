@@ -20,7 +20,12 @@ function normalizeOption(option) {
     option &&
     typeof option === "object" &&
     !Array.isArray(option) &&
-    ("value" in option || "label" in option || "disabled" in option)
+    (
+      "value" in option ||
+      "label" in option ||
+      "disabled" in option ||
+      "forced" in option
+    )
   ) {
     const value = "value" in option ? option.value : option.label;
     const label = "label" in option ? option.label : value;
@@ -28,14 +33,16 @@ function normalizeOption(option) {
     return {
       value,
       label: String(label ?? ""),
-      disabled: Boolean(option.disabled)
+      disabled: Boolean(option.disabled),
+      forced: Boolean(option.forced)
     };
   }
 
   return {
     value: option,
     label: String(option ?? ""),
-    disabled: false
+    disabled: false,
+    forced: false
   };
 }
 
@@ -79,6 +86,15 @@ function cloneValue(value) {
   return Array.isArray(value) ? [...value] : value;
 }
 
+function forcedIndexesFromOptions(options, multiple) {
+  if (!multiple) return [];
+
+  return options.reduce((indexes, option, index) => {
+    if (option.forced) indexes.push(index);
+    return indexes;
+  }, []);
+}
+
 function createScopedStyles(id, showOutput) {
   return `
 #${id} {
@@ -90,6 +106,7 @@ function createScopedStyles(id, showOutput) {
   --selectflat-hover: #ef8f35;
   --selectflat-disabled: #d6d3d1;
   --selectflat-border: #18181b;
+  --selectflat-forced-border: #1459c7;
   display: inline-flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -149,6 +166,12 @@ function createScopedStyles(id, showOutput) {
   background: var(--selectflat-selected);
 }
 
+#${id} .${CLASS_NAME}__option[data-forced="true"] {
+  border-color: var(--selectflat-forced-border);
+  box-shadow: inset 0 0 0 1px var(--selectflat-forced-border);
+  cursor: not-allowed;
+}
+
 #${id} .${CLASS_NAME}__option[data-hovered="true"] {
   background: var(--selectflat-hover);
 }
@@ -196,6 +219,7 @@ export function selectFlat(config = {}) {
   } = toConfig(config);
 
   const options = rawOptions.map(normalizeOption);
+  const forcedIndexes = forcedIndexesFromOptions(options, multiple);
   const id = nextId();
   const form = document.createElement("form");
   const styles = document.createElement("style");
@@ -204,11 +228,6 @@ export function selectFlat(config = {}) {
   const descriptionNode = document.createElement("span");
   const metaNode = document.createElement("div");
   const buttons = [];
-  const initialIndexes = indexesFromValue(options, initialValue, multiple);
-
-  let committedIndexes = [...initialIndexes];
-  let previewIndexes = null;
-  let hoveredIndex = null;
 
   form.id = id;
   form.className = CLASS_NAME;
@@ -236,6 +255,28 @@ export function selectFlat(config = {}) {
     form.append(metaNode);
   }
 
+  function normalizeCommittedIndexes(indexes) {
+    return multiple ? uniqueSortedIndexes([...forcedIndexes, ...indexes]) : indexes;
+  }
+
+  function isForcedIndex(index) {
+    return multiple && forcedIndexes.includes(index);
+  }
+
+  function previewIndexesFor(index) {
+    if (options[index].disabled) return null;
+    if (multiple) return normalizeCommittedIndexes([...committedIndexes, index]);
+    return [index];
+  }
+
+  const initialIndexes = normalizeCommittedIndexes(
+    indexesFromValue(options, initialValue, multiple)
+  );
+
+  let committedIndexes = [...initialIndexes];
+  let previewIndexes = null;
+  let hoveredIndex = null;
+
   function activeIndexes() {
     return previewIndexes ?? committedIndexes;
   }
@@ -251,6 +292,7 @@ export function selectFlat(config = {}) {
 
     buttons.forEach((button, index) => {
       button.dataset.selected = committed.has(index) ? "true" : "false";
+      button.dataset.forced = isForcedIndex(index) ? "true" : "false";
       button.dataset.hovered = hoveredIndex === index ? "true" : "false";
       button.setAttribute(
         "aria-checked",
@@ -271,7 +313,7 @@ export function selectFlat(config = {}) {
   }
 
   function applyCommittedIndexes(nextIndexes, { dispatch = false } = {}) {
-    committedIndexes = [...nextIndexes];
+    committedIndexes = normalizeCommittedIndexes(nextIndexes);
     previewIndexes = null;
     hoveredIndex = null;
     renderButtons();
@@ -290,7 +332,7 @@ export function selectFlat(config = {}) {
   }
 
   function commit(index) {
-    if (options[index].disabled) return;
+    if (options[index].disabled || isForcedIndex(index)) return;
 
     if (multiple) {
       const selected = new Set(committedIndexes);
@@ -311,7 +353,7 @@ export function selectFlat(config = {}) {
     button.type = "button";
     button.className = `${CLASS_NAME}__option`;
     button.textContent = option.label;
-    button.title = option.label;
+    button.title = option.forced ? `${option.label} (forced)` : option.label;
     button.dataset.index = String(index);
     button.setAttribute("role", multiple ? "checkbox" : "radio");
     button.setAttribute("aria-label", option.label);
@@ -326,7 +368,7 @@ export function selectFlat(config = {}) {
     if (!button || !optionStrip.contains(button)) return;
 
     hoveredIndex = Number(button.dataset.index);
-    previewIndexes = options[hoveredIndex].disabled ? null : [hoveredIndex];
+    previewIndexes = previewIndexesFor(hoveredIndex);
     renderButtons();
     dispatchFormEvent("input");
   });
@@ -336,7 +378,7 @@ export function selectFlat(config = {}) {
     if (!button || !optionStrip.contains(button)) return;
 
     hoveredIndex = Number(button.dataset.index);
-    previewIndexes = options[hoveredIndex].disabled ? null : [hoveredIndex];
+    previewIndexes = previewIndexesFor(hoveredIndex);
     renderButtons();
     dispatchFormEvent("input");
   });

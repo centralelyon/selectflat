@@ -89,6 +89,8 @@ const control = selectFlat({
 console.log(control.value); // ["warm", "bright"]
 ```
 
+When `multiple: true`, hovering an option previews that option together with the values that are already selected.
+
 ## API
 
 `selectFlat(config)` or `selectFlat(optionsArray)`
@@ -108,6 +110,7 @@ Option objects support:
 - `value`: underlying value returned from `form.value`
 - `label`: visible label used for tooltips and output text
 - `disabled`: disable selection for that option
+- `forced`: when `multiple: true`, keep this option selected and do not allow it to be toggled off
 
 ### Return value
 
