@@ -15,6 +15,64 @@ function toConfig(config) {
   return Array.isArray(config) ? { options: config } : { ...config };
 }
 
+function isElement(value) {
+  return typeof Element !== "undefined" && value instanceof Element;
+}
+
+function normalizeImageFit(value) {
+  const fit = typeof value === "string" ? value.toLowerCase() : "";
+
+  if (["rescale", "contain", "fit"].includes(fit)) return "contain";
+  if (["crop", "crope", "cover"].includes(fit)) return "cover";
+  if (["fill", "stretch"].includes(fit)) return "fill";
+  if (["none", "original"].includes(fit)) return "none";
+  if (["scale-down", "scaledown"].includes(fit)) return "scale-down";
+
+  return "contain";
+}
+
+function normalizeImage(image, defaults = {}) {
+  if (image === undefined || image === null) return null;
+
+  if (typeof image === "string") {
+    return {
+      src: image,
+      element: null,
+      alt: defaults.alt ?? "",
+      fit: normalizeImageFit(defaults.fit)
+    };
+  }
+
+  if (isElement(image)) {
+    return {
+      src: null,
+      element: image,
+      alt: defaults.alt ?? "",
+      fit: normalizeImageFit(defaults.fit)
+    };
+  }
+
+  if (typeof image === "object" && !Array.isArray(image)) {
+    const element = image.element ?? image.node ?? image.el ?? null;
+    const src = image.src ?? image.url ?? image.href ?? null;
+
+    return {
+      src,
+      element: isElement(element) ? element : null,
+      alt: image.alt ?? defaults.alt ?? "",
+      fit: normalizeImageFit(
+        image.fit ?? image.objectFit ?? image.mode ?? defaults.fit
+      ),
+      loading: image.loading,
+      decoding: image.decoding,
+      crossOrigin: image.crossOrigin ?? image.crossorigin,
+      referrerPolicy: image.referrerPolicy ?? image.referrerpolicy
+    };
+  }
+
+  return null;
+}
+
 function normalizeOption(option) {
   if (
     option &&
@@ -23,16 +81,22 @@ function normalizeOption(option) {
     (
       "value" in option ||
       "label" in option ||
+      "image" in option ||
       "disabled" in option ||
       "forced" in option
     )
   ) {
     const value = "value" in option ? option.value : option.label;
     const label = "label" in option ? option.label : value;
+    const image = normalizeImage(option.image, {
+      fit: option.fit ?? option.imageFit,
+      alt: option.alt
+    });
 
     return {
       value,
       label: String(label ?? ""),
+      image,
       disabled: Boolean(option.disabled),
       forced: Boolean(option.forced)
     };
@@ -41,6 +105,7 @@ function normalizeOption(option) {
   return {
     value: option,
     label: String(option ?? ""),
+    image: null,
     disabled: false,
     forced: false
   };
@@ -187,6 +252,9 @@ function createScopedStyles(id, showOutput, layout) {
 }
 
 #${id} .${CLASS_NAME}__option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: var(--selectflat-option-size);
   height: var(--selectflat-option-size);
   margin: 0;
@@ -200,6 +268,21 @@ function createScopedStyles(id, showOutput, layout) {
   font: inherit;
   -webkit-tap-highlight-color: transparent;
   transition: transform 120ms ease, background-color 120ms ease;
+}
+
+#${id} .${CLASS_NAME}__option[data-has-image="true"] {
+  color: transparent;
+}
+
+#${id} .${CLASS_NAME}__option img,
+#${id} .${CLASS_NAME}__option svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: var(--selectflat-image-fit, contain);
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 #${id} .${CLASS_NAME}__option[data-selected="true"] {
@@ -387,13 +470,21 @@ export function selectFlat(config = {}) {
     const committed = new Set(committedIndexes);
 
     buttons.forEach((button, index) => {
+      const option = options[index];
       button.dataset.selected = committed.has(index) ? "true" : "false";
       button.dataset.forced = isForcedIndex(index) ? "true" : "false";
       button.dataset.hovered = hoveredIndex === index ? "true" : "false";
+      button.dataset.hasImage = option.image ? "true" : "false";
       button.setAttribute(
         "aria-checked",
         committed.has(index) ? "true" : "false"
       );
+
+      if (option.image) {
+        button.style.setProperty("--selectflat-image-fit", option.image.fit);
+      } else {
+        button.style.removeProperty("--selectflat-image-fit");
+      }
     });
 
     syncOutput();
@@ -555,7 +646,6 @@ export function selectFlat(config = {}) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = `${CLASS_NAME}__option`;
-    button.textContent = option.label;
     button.title = option.forced ? `${option.label} (forced)` : option.label;
     button.dataset.index = String(index);
     button.setAttribute("role", multiple ? "checkbox" : "radio");
@@ -565,6 +655,40 @@ export function selectFlat(config = {}) {
       option.disabled || option.forced ? "true" : "false"
     );
     button.tabIndex = option.disabled || option.forced ? -1 : 0;
+
+    if (option.image) {
+      const {
+        element,
+        src,
+        alt,
+        loading,
+        decoding,
+        crossOrigin,
+        referrerPolicy
+      } = option.image;
+      const imageNode = element
+        ? element.cloneNode(true)
+        : document.createElement("img");
+
+      if (!element) {
+        imageNode.src = src;
+        imageNode.alt = alt ?? "";
+        if (loading) imageNode.loading = loading;
+        if (decoding) imageNode.decoding = decoding;
+        if (crossOrigin !== undefined && crossOrigin !== null) {
+          imageNode.crossOrigin = crossOrigin;
+        }
+        if (referrerPolicy) imageNode.referrerPolicy = referrerPolicy;
+      }
+
+      imageNode.removeAttribute?.("id");
+      imageNode.setAttribute("aria-hidden", "true");
+      if ("focusable" in imageNode) imageNode.focusable = "false";
+      button.append(imageNode);
+    } else {
+      button.textContent = option.label;
+    }
+
     optionStrip.append(button);
     buttons.push(button);
   });

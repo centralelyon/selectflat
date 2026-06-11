@@ -110,6 +110,38 @@ const control = selectFlat({
 });
 ```
 
+## Image options
+
+Options can render an image instead of text. Pass either an image URL, a data URL or base64 string,
+or an already loaded image element from the page:
+
+```js
+import { selectFlat } from "selectflat";
+
+const control = selectFlat({
+  output: true,
+  value: "fr",
+  options: [
+    {
+      value: "fr",
+      label: "France",
+      image: "https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/fr.svg",
+      fit: "contain"
+    },
+    {
+      value: "us",
+      label: "United States",
+      image: document.querySelector("#us-flag"),
+      fit: "contain"
+    }
+  ]
+});
+```
+
+`fit` accepts CSS-like image fitting modes. `contain` keeps the whole image visible, `cover`
+fills the square and may crop, and `fill`, `none`, and `scale-down` are also supported.
+`rescale` is treated as `contain`, and `crop` or `crope` are treated as `cover`.
+
 ## Touch interaction
 
 On touch devices:
@@ -152,6 +184,8 @@ Option objects support:
 - `label`: visible label used for tooltips and output text
 - `disabled`: disable selection for that option
 - `forced`: when `multiple: true`, keep this option selected and do not allow it to be toggled off
+- `image`: optional image URL, data URL, base64 string, or already loaded image element
+- `fit`: image fit mode for this option: `contain`, `cover`, `fill`, `none`, or `scale-down`
 
 ### Return value
 
@@ -181,7 +215,8 @@ Both `setValue()` and `resetValue()` dispatch `input` and `change` by default. P
 
 ## Examples
 
-The demo page lives at [examples/index.html](./examples/index.html).
+The demo page lives at [examples/index.html](./examples/index.html). It includes examples for
+flags, emoji icons, multiple selection, layout control, and programmatic updates.
 
 To run it locally:
 

@@ -17,6 +17,43 @@ function bindValue(control, target, formatter) {
   render();
 }
 
+function preloadImageElements(items) {
+  const holder = document.createElement("div");
+  holder.hidden = true;
+
+  const nodes = new Map();
+  items.forEach(({ key, src, alt }) => {
+    const image = document.createElement("img");
+    image.src = src;
+    image.alt = alt;
+    image.dataset.key = key;
+    holder.append(image);
+    nodes.set(key, image);
+  });
+
+  document.body.append(holder);
+  return nodes;
+}
+
+const flagDefinitions = [
+  { code: "fr", label: "France" },
+  { code: "us", label: "United States" },
+  { code: "de", label: "Germany" },
+  { code: "gb", label: "United Kingdom" },
+  { code: "jp", label: "Japan" },
+  { code: "br", label: "Brazil" },
+  { code: "ca", label: "Canada" },
+  { code: "mx", label: "Mexico" }
+];
+
+const flagImages = preloadImageElements(
+  flagDefinitions.map(({ code, label }) => ({
+    key: code,
+    alt: `${label} flag`,
+    src: `https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/${code}.svg`
+  }))
+);
+
 const basic = mount(
   "#example-basic",
   selectFlat({
@@ -28,6 +65,62 @@ const basic = mount(
 );
 
 bindValue(basic, "#value-basic", (value) => `value = ${value}`);
+
+const flags = mount(
+  "#example-flags",
+  selectFlat({
+    title: "Flags",
+    description: "country",
+    output: true,
+    value: "fr",
+    options: flagDefinitions.map(({ code, label }) => ({
+      value: code,
+      label,
+      image: flagImages.get(code),
+      fit: "contain"
+    }))
+  })
+);
+
+bindValue(flags, "#value-flags", (value) => `value = ${value}`);
+
+const emojiUrlFallback = {
+  thumbsup: "https://github.githubassets.com/images/icons/emoji/unicode/1f44d.png?v8",
+  heart: "https://github.githubassets.com/images/icons/emoji/unicode/2764.png?v8",
+  rocket: "https://github.githubassets.com/images/icons/emoji/unicode/1f680.png?v8",
+  tada: "https://github.githubassets.com/images/icons/emoji/unicode/1f389.png?v8",
+  sparkles: "https://github.githubassets.com/images/icons/emoji/unicode/2728.png?v8",
+  wave: "https://github.githubassets.com/images/icons/emoji/unicode/1f44b.png?v8",
+  warning: "https://github.githubassets.com/images/icons/emoji/unicode/26a0.png?v8",
+  fire: "https://github.githubassets.com/images/icons/emoji/unicode/1f525.png?v8"
+};
+
+const emojiUrl = "https://raw.githubusercontent.com/Justineo/github-hovercard/master/assets/emoji.json";
+const emojiMap = await fetch(emojiUrl)
+  .then((response) => response.json())
+  .catch(() => emojiUrlFallback);
+
+const emojis = mount(
+  "#example-emojis",
+  selectFlat({
+    title: "Emojis",
+    description: "reaction",
+    output: true,
+    value: "rocket",
+    options: [
+      { value: "thumbsup", label: "thumbs up", image: emojiMap.thumbsup, fit: "contain" },
+      { value: "heart", label: "heart", image: emojiMap.heart, fit: "contain" },
+      { value: "rocket", label: "rocket", image: emojiMap.rocket, fit: "contain" },
+      { value: "tada", label: "party", image: emojiMap.tada, fit: "contain" },
+      { value: "sparkles", label: "sparkles", image: emojiMap.sparkles, fit: "contain" },
+      { value: "wave", label: "wave", image: emojiMap.wave, fit: "contain" },
+      { value: "warning", label: "warning", image: emojiMap.warning, fit: "contain" },
+      { value: "fire", label: "fire", image: emojiMap.fire, fit: "contain" }
+    ]
+  })
+);
+
+bindValue(emojis, "#value-emojis", (value) => `value = ${value}`);
 
 const mathHost = document.querySelector("#example-math");
 
