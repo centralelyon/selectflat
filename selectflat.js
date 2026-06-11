@@ -166,7 +166,7 @@ function toCssLength(value, fallback) {
 }
 
 function normalizeDirection(value) {
-  return ["row", "row-reverse", "column", "column-reverse"].includes(value)
+  return ["row", "row-reverse", "column", "column-reverse", "grid"].includes(value)
     ? value
     : "row";
 }
@@ -185,13 +185,43 @@ function normalizeLayout(layout = {}) {
   };
 }
 
+function normalizeTextVisibility(value) {
+  const visibility = typeof value === "string" ? value.toLowerCase() : "";
+  if (["always", "hover", "hidden"].includes(visibility)) return visibility;
+  return "hidden";
+}
+
+function normalizeTextWidth(value) {
+  const width = typeof value === "string" ? value.toLowerCase() : "";
+  if (["content", "fit", "auto"].includes(width)) return "content";
+  return "fixed";
+}
+
+function normalizeTextOverflow(value) {
+  const overflow = typeof value === "string" ? value.toLowerCase() : "";
+  if (["ellipsis", "clip"].includes(overflow)) return overflow;
+  return "clip";
+}
+
+function normalizeText(text = {}) {
+  return {
+    visibility: normalizeTextVisibility(text.visibility ?? text.show),
+    width: normalizeTextWidth(text.width ?? text.mode),
+    overflow: normalizeTextOverflow(text.overflow)
+  };
+}
+
 function normalizeDispatchOptions(options) {
   return {
     dispatch: options?.dispatch ?? true
   };
 }
 
-function createScopedStyles(id, showOutput, layout) {
+function createScopedStyles(id, showOutput, layout, text) {
+  const isGrid = layout.direction === "grid";
+  const optionDirection = isGrid ? "row" : layout.direction;
+  const optionWrap = isGrid ? "wrap" : layout.wrap;
+
   return `
 #${id} {
   --selectflat-text: #18181b;
@@ -205,9 +235,13 @@ function createScopedStyles(id, showOutput, layout) {
   --selectflat-forced-border: #1459c7;
   --selectflat-option-size: ${layout.size};
   --selectflat-option-gap: ${layout.gap};
-  --selectflat-option-direction: ${layout.direction};
-  --selectflat-option-wrap: ${layout.wrap};
-  display: inline-flex;
+  --selectflat-option-direction: ${optionDirection};
+  --selectflat-option-wrap: ${optionWrap};
+  --selectflat-text-width: ${text.width};
+  --selectflat-text-overflow: ${text.overflow};
+  display: ${isGrid ? "block" : "inline-flex"};
+  width: ${isGrid ? "100%" : "auto"};
+  max-width: 100%;
   flex-direction: column;
   gap: 0.5rem;
   margin: 0;
@@ -241,10 +275,27 @@ function createScopedStyles(id, showOutput, layout) {
   font-weight: 700;
 }
 
+#${id} .${CLASS_NAME}__output-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+#${id} .${CLASS_NAME}__output-image {
+  display: block;
+  width: 1.2rem;
+  height: 1.2rem;
+  object-fit: contain;
+  flex: 0 0 auto;
+}
+
 #${id} .${CLASS_NAME}__options {
   display: flex;
   flex-direction: var(--selectflat-option-direction);
   flex-wrap: var(--selectflat-option-wrap);
+  width: ${isGrid ? "100%" : "auto"};
+  max-width: 100%;
+  align-content: flex-start;
   gap: var(--selectflat-option-gap);
   touch-action: none;
   user-select: none;
@@ -262,16 +313,47 @@ function createScopedStyles(id, showOutput, layout) {
   border: 0.5px solid var(--selectflat-border);
   border-radius: 0;
   background: var(--selectflat-option);
-  color: transparent;
+  color: var(--selectflat-text);
+  font: inherit;
+  line-height: 1;
+  text-align: center;
   overflow: hidden;
   cursor: pointer;
-  font: inherit;
   -webkit-tap-highlight-color: transparent;
   transition: transform 120ms ease, background-color 120ms ease;
 }
 
-#${id} .${CLASS_NAME}__option[data-has-image="true"] {
-  color: transparent;
+#${id} .${CLASS_NAME}__option[data-text-width="content"] {
+  width: auto;
+  min-width: var(--selectflat-option-size);
+  padding-inline: 0.35rem;
+}
+
+#${id} .${CLASS_NAME}__option[data-text-width="fixed"] {
+  width: var(--selectflat-option-size);
+  padding-inline: 0;
+}
+
+#${id} .${CLASS_NAME}__label {
+  display: block;
+  max-width: 100%;
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: var(--selectflat-text-overflow);
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+#${id} .${CLASS_NAME}__option[data-text-visibility="always"] .${CLASS_NAME}__label,
+#${id} .${CLASS_NAME}__option[data-text-visibility="hover"][data-hovered="true"] .${CLASS_NAME}__label {
+  opacity: 1;
+}
+
+#${id} .${CLASS_NAME}__option[data-has-image="true"] .${CLASS_NAME}__label {
+  opacity: 0;
 }
 
 #${id} .${CLASS_NAME}__option img,
@@ -283,6 +365,15 @@ function createScopedStyles(id, showOutput, layout) {
   pointer-events: none;
   user-select: none;
   -webkit-user-drag: none;
+  opacity: 0.5;
+  transition: opacity 120ms ease;
+}
+
+#${id} .${CLASS_NAME}__option[data-selected="true"] img,
+#${id} .${CLASS_NAME}__option[data-selected="true"] svg,
+#${id} .${CLASS_NAME}__option[data-hovered="true"] img,
+#${id} .${CLASS_NAME}__option[data-hovered="true"] svg {
+  opacity: 1;
 }
 
 #${id} .${CLASS_NAME}__option[data-selected="true"] {
@@ -339,12 +430,14 @@ export function selectFlat(config = {}) {
     multiple = false,
     output = false,
     layout = {},
+    text = {},
     options: rawOptions = []
   } = toConfig(config);
 
   const options = rawOptions.map(normalizeOption);
   const forcedIndexes = forcedIndexesFromOptions(options, multiple);
   const normalizedLayout = normalizeLayout(layout);
+  const normalizedText = normalizeText(text);
   const id = nextId();
   const form = document.createElement("form");
   const styles = document.createElement("style");
@@ -356,7 +449,7 @@ export function selectFlat(config = {}) {
 
   form.id = id;
   form.className = CLASS_NAME;
-  styles.textContent = createScopedStyles(id, output, normalizedLayout);
+  styles.textContent = createScopedStyles(id, output, normalizedLayout, normalizedText);
   optionStrip.className = `${CLASS_NAME}__options`;
   optionStrip.setAttribute("role", multiple ? "group" : "radiogroup");
   metaNode.className = `${CLASS_NAME}__meta`;
@@ -460,10 +553,54 @@ export function selectFlat(config = {}) {
     return buttonFromTarget(element);
   }
 
+  function cloneOutputImage(option) {
+    if (!option?.image) return null;
+
+    const { element, src, alt, loading, decoding, crossOrigin, referrerPolicy } =
+      option.image;
+    const imageNode = element ? element.cloneNode(true) : document.createElement("img");
+
+    if (!element) {
+      imageNode.src = src;
+      imageNode.alt = alt ?? "";
+      if (loading) imageNode.loading = loading;
+      if (decoding) imageNode.decoding = decoding;
+      if (crossOrigin !== undefined && crossOrigin !== null) {
+        imageNode.crossOrigin = crossOrigin;
+      }
+      if (referrerPolicy) imageNode.referrerPolicy = referrerPolicy;
+    }
+
+    imageNode.removeAttribute?.("id");
+    imageNode.setAttribute("aria-hidden", "true");
+    if ("focusable" in imageNode) imageNode.focusable = "false";
+    imageNode.classList?.add(`${CLASS_NAME}__output-image`);
+    return imageNode;
+  }
+
   function syncOutput() {
-    const labels = labelsForIndexes(options, activeIndexes());
-    outputNode.value = labels;
-    outputNode.textContent = labels;
+    const indexes = activeIndexes();
+    const labels = labelsForIndexes(options, indexes);
+    let outputText = labels;
+
+    if (indexes.length === 1 && options[indexes[0]].image) {
+      const option = options[indexes[0]];
+      const inner = document.createElement("span");
+      inner.className = `${CLASS_NAME}__output-inner`;
+      inner.append(cloneOutputImage(option));
+
+      const valueText = document.createElement("span");
+      valueText.textContent = String(option.value ?? "");
+      inner.append(valueText);
+
+      outputNode.textContent = "";
+      outputNode.append(inner);
+      outputText = String(option.value ?? "");
+    } else {
+      outputNode.textContent = labels;
+    }
+
+    outputNode.value = outputText;
   }
 
   function renderButtons() {
@@ -475,6 +612,8 @@ export function selectFlat(config = {}) {
       button.dataset.forced = isForcedIndex(index) ? "true" : "false";
       button.dataset.hovered = hoveredIndex === index ? "true" : "false";
       button.dataset.hasImage = option.image ? "true" : "false";
+      button.dataset.textVisibility = normalizedText.visibility;
+      button.dataset.textWidth = normalizedText.width;
       button.setAttribute(
         "aria-checked",
         committed.has(index) ? "true" : "false"
@@ -656,38 +795,17 @@ export function selectFlat(config = {}) {
     );
     button.tabIndex = option.disabled || option.forced ? -1 : 0;
 
+    const labelNode = document.createElement("span");
+    labelNode.className = `${CLASS_NAME}__label`;
+    labelNode.textContent = option.label;
+
     if (option.image) {
-      const {
-        element,
-        src,
-        alt,
-        loading,
-        decoding,
-        crossOrigin,
-        referrerPolicy
-      } = option.image;
-      const imageNode = element
-        ? element.cloneNode(true)
-        : document.createElement("img");
-
-      if (!element) {
-        imageNode.src = src;
-        imageNode.alt = alt ?? "";
-        if (loading) imageNode.loading = loading;
-        if (decoding) imageNode.decoding = decoding;
-        if (crossOrigin !== undefined && crossOrigin !== null) {
-          imageNode.crossOrigin = crossOrigin;
-        }
-        if (referrerPolicy) imageNode.referrerPolicy = referrerPolicy;
-      }
-
-      imageNode.removeAttribute?.("id");
-      imageNode.setAttribute("aria-hidden", "true");
-      if ("focusable" in imageNode) imageNode.focusable = "false";
+      const imageNode = cloneOutputImage(option);
+      imageNode.classList.remove(`${CLASS_NAME}__output-image`);
       button.append(imageNode);
-    } else {
-      button.textContent = option.label;
     }
+
+    button.append(labelNode);
 
     optionStrip.append(button);
     buttons.push(button);

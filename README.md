@@ -103,12 +103,36 @@ const control = selectFlat({
   layout: {
     size: "1.4rem",
     gap: "0.25rem",
-    direction: "row",
-    wrap: "nowrap"
+    direction: "grid",
+    wrap: "wrap"
   },
   options: ["A", "B", "C", "D", "E", "F"]
 });
 ```
+
+`direction: "grid"` wraps cells to the next row when the available width runs out.
+
+## Text labels
+
+By default, labels are hidden in the cells. You can reveal them on hover, keep them always
+visible, let the cell grow to fit the text, or clip the text inside a fixed cell:
+
+```js
+import { selectFlat } from "selectflat";
+
+const control = selectFlat({
+  text: {
+    visibility: "hover",
+    width: "content",
+    overflow: "clip"
+  },
+  options: ["Alpha", "Beta", "Gamma"]
+});
+```
+
+`visibility` accepts `hidden`, `hover`, and `always`.
+`width` accepts `fixed` or `content`.
+`overflow` accepts `clip` or `ellipsis`.
 
 ## Image options
 
@@ -169,19 +193,26 @@ In multiple mode, drag gestures act like painting:
 - `output`: when `true`, show the current label next to the description
 - `multiple`: when `true`, allow toggling several values and return an array
 - `layout`: optional layout object controlling option size and arrangement
+- `text`: optional text display settings for option labels
 - `submit`: optional submit button label, or `true` for a default `Apply` button
 
 `layout` supports:
 
 - `size`: square width and height, as a CSS length or number of pixels
 - `gap`: spacing between cells, as a CSS length or number of pixels
-- `direction`: `row`, `row-reverse`, `column`, or `column-reverse`
+- `direction`: `row`, `row-reverse`, `column`, `column-reverse`, or `grid`
 - `wrap`: `true` / `false`, or `wrap`, `nowrap`, `wrap-reverse`
+
+`text` supports:
+
+- `visibility`: `hidden`, `hover`, or `always`
+- `width`: `fixed` or `content`
+- `overflow`: `clip` or `ellipsis`
 
 Option objects support:
 
 - `value`: underlying value returned from `form.value`
-- `label`: visible label used for tooltips and output text
+- `label`: label text used for tooltips, output text, and optional in-cell rendering
 - `disabled`: disable selection for that option
 - `forced`: when `multiple: true`, keep this option selected and do not allow it to be toggled off
 - `image`: optional image URL, data URL, base64 string, or already loaded image element

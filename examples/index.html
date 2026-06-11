@@ -30,6 +30,11 @@
       margin: 0.75rem 0;
     }
 
+    .grid-demo {
+      width: 16rem;
+      max-width: 100%;
+    }
+
     .value {
       margin-top: 0.75rem;
       font-family: monospace;
@@ -41,6 +46,26 @@
       flex-wrap: wrap;
       align-items: center;
       margin: 0.75rem 0;
+    }
+
+    details.snippet {
+      margin-top: 0.75rem;
+    }
+
+    details.snippet summary {
+      cursor: pointer;
+      font: inherit;
+    }
+
+    details.snippet pre {
+      margin: 0.5rem 0 0;
+      padding: 0.75rem;
+      overflow: auto;
+      background: #f7f7f7;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 0.875rem;
+      line-height: 1.4;
     }
   </style>
 </head>
@@ -61,6 +86,36 @@
       <p>Single-value usage with the same letter example as the notebook.</p>
       <div class="example" id="example-basic"></div>
       <div class="value" id="value-basic"></div>
+      <details class="snippet">
+        <summary>Show configuration</summary>
+        <pre><code id="snippet-basic"></code></pre>
+      </details>
+    </section>
+
+    <section>
+      <h2>Text labels</h2>
+      <p>
+        Text labels are hidden by default. They can appear on hover, expand to fit their
+        content, or stay clipped inside a fixed cell.
+      </p>
+      <div class="example" id="example-text-hover"></div>
+      <div class="value" id="value-text-hover"></div>
+      <details class="snippet">
+        <summary>Show configuration</summary>
+        <pre><code id="snippet-text-hover"></code></pre>
+      </details>
+      <div class="example" id="example-text-content"></div>
+      <div class="value" id="value-text-content"></div>
+      <details class="snippet">
+        <summary>Show configuration</summary>
+        <pre><code id="snippet-text-content"></code></pre>
+      </details>
+      <div class="example" id="example-text-clip"></div>
+      <div class="value" id="value-text-clip"></div>
+      <details class="snippet">
+        <summary>Show configuration</summary>
+        <pre><code id="snippet-text-clip"></code></pre>
+      </details>
     </section>
 
     <section>
@@ -72,6 +127,10 @@
       </p>
       <div class="example" id="example-flags"></div>
       <div class="value" id="value-flags"></div>
+      <details class="snippet">
+        <summary>Show configuration</summary>
+        <pre><code id="snippet-flags"></code></pre>
+      </details>
     </section>
 
     <section>
@@ -83,6 +142,10 @@
       </p>
       <div class="example" id="example-emojis"></div>
       <div class="value" id="value-emojis"></div>
+      <details class="snippet">
+        <summary>Show configuration</summary>
+        <pre><code id="snippet-emojis"></code></pre>
+      </details>
     </section>
 
     <section>
@@ -99,6 +162,10 @@
       <p>Three selectors can be previewed live before you click.</p>
       <div class="example" id="example-math"></div>
       <div class="value" id="value-math"></div>
+      <details class="snippet">
+        <summary>Show configuration</summary>
+        <pre><code id="snippet-math"></code></pre>
+      </details>
     </section>
 
     <section>
@@ -106,6 +173,10 @@
       <p>Multi-select returns an array, and hover previews keep the current selection visible.</p>
       <div class="example" id="example-multiple"></div>
       <div class="value" id="value-multiple"></div>
+      <details class="snippet">
+        <summary>Show configuration</summary>
+        <pre><code id="snippet-multiple"></code></pre>
+      </details>
     </section>
 
     <section>
@@ -115,6 +186,10 @@
       </p>
       <div class="example" id="example-multiple-forced"></div>
       <div class="value" id="value-multiple-forced"></div>
+      <details class="snippet">
+        <summary>Show configuration</summary>
+        <pre><code id="snippet-multiple-forced"></code></pre>
+      </details>
     </section>
 
     <section>
@@ -122,10 +197,24 @@
       <p>
         Layout can control square size, gap, direction, and wrapping.
       </p>
+      <div class="example grid-demo" id="example-grid"></div>
+      <div class="value" id="value-grid"></div>
+      <details class="snippet">
+        <summary>Show configuration</summary>
+        <pre><code id="snippet-grid"></code></pre>
+      </details>
       <div class="example" id="example-layout-row"></div>
       <div class="value" id="value-layout-row"></div>
+      <details class="snippet">
+        <summary>Show configuration</summary>
+        <pre><code id="snippet-layout-row"></code></pre>
+      </details>
       <div class="example" id="example-layout-column"></div>
       <div class="value" id="value-layout-column"></div>
+      <details class="snippet">
+        <summary>Show configuration</summary>
+        <pre><code id="snippet-layout-column"></code></pre>
+      </details>
     </section>
 
     <section>
@@ -142,6 +231,10 @@
         <button type="button" id="programmatic-reset">Reset to initial value</button>
       </div>
       <div class="value" id="value-programmatic"></div>
+      <details class="snippet">
+        <summary>Show configuration</summary>
+        <pre><code id="snippet-programmatic"></code></pre>
+      </details>
     </section>
   </main>
 
